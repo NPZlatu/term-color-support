@@ -1,185 +1,280 @@
 use std::env;
+
 use atty::{ Stream, is };
+use os_info;
 
 #[derive(Debug)]
-pub struct SupportsColorResult {
-    stdout: Option<ColorSupport>,
-    stderr: Option<ColorSupport>,
+enum ColorLevel {
+    NoColor,
+    Basic,
+    Colors256,
+    TrueColor,
+}
+
+impl ColorLevel {
+    fn from_u32(level: u32) -> Option<ColorLevel> {
+        match level {
+            0 => Some(ColorLevel::NoColor),
+            1 => Some(ColorLevel::Basic),
+            2 => Some(ColorLevel::Colors256),
+            3 => Some(ColorLevel::TrueColor),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug)]
-struct ColorSupport {
-    level: usize,
-    has_basic: bool,
-    has_256: bool,
-    has_16m: bool,
+struct OutputColorSupport {
+    stdout_color_support: Option<ColorLevel>,
+    stderr_color_support: Option<ColorLevel>,
 }
+
+impl OutputColorSupport {
+    fn new(
+        stdout_color_support: Option<ColorLevel>,
+        stderr_color_support: Option<ColorLevel>
+    ) -> Self {
+        OutputColorSupport { stdout_color_support, stderr_color_support }
+    }
+}
+
 #[derive(Debug)]
+struct Environment {
+    term: String,
+    colorterm: Option<String>,
+    teamcity_version: Option<String>,
+    ci: Option<String>,
+    os_release: String,
+    term_program: Option<String>,
+    term_program_version: String,
+}
+
+impl Environment {
+    fn new() -> Self {
+        let binding = os_info::get();
+        let os_release = binding.version();
+
+        Self {
+            term: std::env::var("TERM").unwrap_or_else(|_| String::from("")),
+            colorterm: std::env::var("COLORTERM").ok(),
+            teamcity_version: std::env::var("TEAMCITY_VERSION").ok(),
+            ci: std::env::var("CI").ok(),
+            os_release: os_release.to_string(),
+            term_program: std::env::var("TERM_PROGRAM").ok(),
+            term_program_version: std::env
+                ::var("TERM_PROGRAM_VERSION")
+                .unwrap_or_else(|_| String::from("")),
+        }
+    }
+
+    fn get_os_release_parts(&self) -> Vec<u32> {
+        self.os_release
+            .split('.')
+            .map(|part| part.parse().unwrap_or(0))
+            .collect()
+    }
+
+    fn get_term_program_version_major(&self) -> Option<u32> {
+        self.term_program_version
+            .split('.')
+            .next()
+            .and_then(|major| major.parse().ok())
+    }
+
+    fn resolve_color_level(&self) -> ColorLevel {
+        if self.term == "dumb" {
+            return ColorLevel::NoColor;
+        }
+
+        if cfg!(windows) {
+            let release_parts = self.get_os_release_parts();
+            if release_parts[0] >= 10 && release_parts[2] >= 10_586 {
+                return if release_parts[2] >= 14_931 {
+                    ColorLevel::TrueColor
+                } else {
+                    ColorLevel::Colors256
+                };
+            }
+            return ColorLevel::Basic;
+        }
+
+        if let Some(ci) = &self.ci {
+            if ci == "TF_BUILD" && std::env::var("AGENT_NAME").is_ok() {
+                return ColorLevel::Basic;
+            }
+            return ColorLevel::NoColor;
+        }
+
+        if let Some(teamcity_version) = &self.teamcity_version {
+            if teamcity_version.starts_with("9.") || teamcity_version.starts_with(char::is_numeric) {
+                return ColorLevel::Basic;
+            }
+            return ColorLevel::NoColor;
+        }
+
+        if let Some(colorterm) = &self.colorterm {
+            if colorterm == "truecolor" {
+                return ColorLevel::TrueColor;
+            }
+        }
+
+        if self.term == "xterm-kitty" {
+            return ColorLevel::TrueColor;
+        }
+
+        if let Some(term_program) = &self.term_program {
+            if let Some(version_major) = self.get_term_program_version_major() {
+                match term_program.as_str() {
+                    "iTerm.app" => {
+                        return if version_major >= 3 {
+                            ColorLevel::TrueColor
+                        } else {
+                            ColorLevel::Colors256
+                        };
+                    }
+                    "Apple_Terminal" => {
+                        return ColorLevel::Colors256;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        if self.term.ends_with("-256color") {
+            return ColorLevel::Colors256;
+        }
+
+        if
+            self.term.starts_with("screen") ||
+            self.term.starts_with("xterm") ||
+            self.term.starts_with("vt100") ||
+            self.term.starts_with("vt220") ||
+            self.term.starts_with("rxvt") ||
+            self.term.contains("color") ||
+            self.term.contains("ansi") ||
+            self.term.contains("cygwin") ||
+            self.term.contains("linux")
+        {
+            return ColorLevel::Basic;
+        }
+
+        if let Some(colorterm) = &self.colorterm {
+            if !colorterm.is_empty() {
+                return ColorLevel::Basic;
+            }
+        }
+
+        ColorLevel::NoColor
+    }
+}
+
 struct StreamOptions {
     is_tty: bool,
     sniff_flags: bool,
 }
 
-impl Default for StreamOptions {
-    fn default() -> Self {
-        Self {
+impl StreamOptions {
+    fn new() -> Self {
+        StreamOptions {
             is_tty: false,
             sniff_flags: true,
         }
     }
 }
 
-struct Environment {
-    term: String,
-    colorterm: Option<String>,
-    teamcity_version: Option<String>,
-    ci: Option<String>,
-}
+fn has_flag(flag: &str) -> bool {
+    let args: Vec<String> = std::env::args().collect();
 
-impl Environment {
-    fn new() -> Self {
-        Self {
-            term: env::var("TERM").unwrap_or_else(|_| String::from("")),
-            colorterm: env::var("COLORTERM").ok(),
-            teamcity_version: env::var("TEAMCITY_VERSION").ok(),
-            ci: env::var("CI").ok(),
-        }
-    }
-
-    fn is_ci(&self) -> bool {
-        self.ci.is_some()
-    }
-
-    fn is_azure_devops_pipeline(&self) -> bool {
-        self.ci.as_ref().map_or(false, |ci| ci == "TF_BUILD" && env::var("AGENT_NAME").is_ok())
-    }
-}
-
-fn has_flag(flag: &str, argv: &Vec<String>) -> bool {
     let flag_without_dashes = flag.trim_start_matches('-');
 
-    argv.iter().any(|arg| {
+    args.iter().any(|arg| {
         let normalized_arg = arg.trim_start_matches('-').to_lowercase();
         normalized_arg == flag_without_dashes
     })
 }
 
-fn translate_level(level: usize) -> Option<ColorSupport> {
-    if level == 0 {
-        return None;
-    }
-
-    Some(ColorSupport {
-        level,
-        has_basic: true,
-        has_256: level >= 2,
-        has_16m: level >= 3,
-    })
-}
-
-fn determine_force_color_level_from_flag() -> usize {
-    let argv: Vec<String> = env::args().collect();
-    let flag_force_color: usize = if
-        has_flag("no-color", &argv) ||
-        has_flag("no-colors", &argv) ||
-        has_flag("color=false", &argv) ||
-        has_flag("color=never", &argv)
-    {
-        0
-    } else if
-        has_flag("color", &argv) ||
-        has_flag("colors", &argv) ||
-        has_flag("color=true", &argv) ||
-        has_flag("color=always", &argv)
-    {
-        1
-    } else {
-        0
-    };
-
-    flag_force_color
-}
-
-fn determine_force_color_level_from_env() -> Option<usize> {
-    if let Ok(force_color) = env::var("FORCE_COLOR") {
+fn get_force_color_level_from_env() -> Option<ColorLevel> {
+    if let Ok(force_color) = std::env::var("FORCE_COLOR") {
         if force_color == "true" {
-            return Some(1);
-        } else if force_color == "false" {
-            return Some(0);
-        } else if force_color.is_empty() {
-            return Some(1);
-        } else if let Ok(level) = force_color.parse::<usize>() {
-            if (0..=3).contains(&level) {
-                return Some(level);
-            }
+            return Some(ColorLevel::Basic);
+        }
+        if force_color == "false" {
+            return Some(ColorLevel::NoColor);
+        }
+        if force_color.is_empty() {
+            return Some(ColorLevel::Basic);
+        }
+        if let Ok(level) = force_color.parse::<u32>() {
+            return ColorLevel::from_u32(level);
         }
     }
     None
 }
 
-fn determine_color_support_level(stream: Stream, options: StreamOptions) -> usize {
-    let mut flag_force_color = None;
-    let argv: Vec<String> = env::args().collect();
-
+fn get_color_level_from_flag() -> ColorLevel {
+    let args: Vec<String> = std::env::args().collect();
     if
         has_flag("no-color") ||
         has_flag("no-colors") ||
         has_flag("color=false") ||
         has_flag("color=never")
     {
-        flag_force_color = Some(0);
+        ColorLevel::NoColor
     } else if
         has_flag("color") ||
         has_flag("colors") ||
         has_flag("color=true") ||
         has_flag("color=always")
     {
-        flag_force_color = Some(1);
+        ColorLevel::Basic
+    } else {
+        ColorLevel::NoColor
+    }
+}
+
+fn get_color_level(has_stream: bool, options: StreamOptions) -> Option<ColorLevel> {
+    let force_color_level_from_env = get_force_color_level_from_env();
+    let mut color_level_from_flag: ColorLevel = ColorLevel::NoColor;
+
+    if force_color_level_from_env.is_none() {
+        color_level_from_flag = get_color_level_from_flag();
     }
 
-    let no_flag_force_color = env_force_color();
-    let force_color = if sniff_flags { flag_force_color } else { no_flag_force_color };
+    let force_color = if options.sniff_flags == true {
+        Some(color_level_from_flag)
+    } else {
+        force_color_level_from_env
+    };
 
-    if let Some(force_color) = force_color {
+    if force_color.is_some() {
         return force_color;
     }
 
-    1
-}
-
-fn create_supports_color(stream: Stream, options: StreamOptions) -> Option<ColorSupport> {
-    let level = determine_color_support_level(stream, options);
-    translate_level(level)
-}
-
-pub fn get_supports_color_result() -> SupportsColorResult {
-    let mut options_std_out = StreamOptions::default();
-    options_std_out.is_tty = is(Stream::Stdout);
-
-    let mut options_std_err = StreamOptions::default();
-    options_std_err.is_tty = is(Stream::Stderr);
-
-    SupportsColorResult {
-        stdout: create_supports_color(Stream::Stdout, options_std_out),
-        stderr: create_supports_color(Stream::Stderr, options_std_err),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        // let args: Vec<String> = env::args().collect();
-        let result = has_flag("verbose", &vec![String::from("--verbose")]);
-        assert!(result);
+    if options.sniff_flags == true {
+        if has_flag("color=16m") || has_flag("color=full") || has_flag("color=truecolor") {
+            return Some(ColorLevel::TrueColor);
+        }
+        if has_flag("color=256") {
+            return Some(ColorLevel::Colors256);
+        }
     }
 
-    #[test]
-    fn test_get_supports_color() {
-        let result = get_supports_color_result();
-        assert!(result.stdout || !result.stdout, "stdout check failed");
-        assert!(result.stderr || !result.stderr, "stderr check failed");
+    if has_stream && !options.is_tty && force_color.is_none() {
+        return Some(ColorLevel::NoColor);
     }
+
+    let environment = Environment::new();
+    Some(environment.resolve_color_level())
+}
+
+fn main() {
+    let stdout_is_tty = is(Stream::Stdout);
+    let stderr_is_tty = is(Stream::Stderr);
+
+    let output = OutputColorSupport::new(
+        get_color_level(stdout_is_tty, StreamOptions::new()),
+        get_color_level(stderr_is_tty, StreamOptions::new())
+    );
+
+    println!("Ouput {:?}", output);
 }
