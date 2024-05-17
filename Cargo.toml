@@ -6,7 +6,12 @@ test = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "term_color_support"
+path = "src/lib.rs"
+
 [dependencies]
 atty = "0.2"
 os_info = "3"
+regex = "1.5.4"
 

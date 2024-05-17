@@ -7,6 +7,19 @@
 //! The `ColorSupport` struct is re-exported for convenient access to color support detection
 //! functionality.
 //!
+//! # Example
+//!
+//! ```rust
+//! use term_color_support::ColorSupport;
+//!
+//! fn main() {
+//!     // Detect and print color support for stdout
+//!     println!("Color support for stdout: {:?}", ColorSupport::stdout());
+//!
+//!     // Detect and print color support for stderr
+//!     println!("Color support for stderr: {:?}", ColorSupport::stderr());
+//! }
+//! ```
 
 mod colors;
 mod environment;

@@ -10,6 +10,21 @@
 //! standard error streams are connected to a terminal.
 //!
 
+/// The module provides functionality to detect and manage color support information for terminal output
+/// streams.
+///
+/// Arguments:
+///
+/// * `options`: The `options` parameter in the `determine_stream_color_level` function is of type
+/// `OutputStreamOptions`. It contains information about the stream, such as whether it is a TTY
+/// (terminal) and any sniffed flags related to color support. The function uses this information to
+/// determine the color support
+///
+/// Returns:
+///
+/// The module provides functionality to detect the color support level of the terminal, determine color
+/// support for standard output and standard error streams, and create `ColorInfo` structs representing
+/// the color support information. It also includes unit tests for the module's functions.
 use atty::{ Stream, is };
 
 use crate::environment::Environment;
@@ -21,7 +36,7 @@ use crate::options::{
 };
 
 /// Enumeration representing the level of color support.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ColorSupportLevel {
     /// No color support.
     NoColor,
@@ -47,7 +62,7 @@ impl ColorSupportLevel {
 }
 
 /// Struct representing color support information.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ColorInfo {
     /// The color support level.
     pub level: ColorSupportLevel,
@@ -138,6 +153,75 @@ pub fn determine_stream_color_level(options: OutputStreamOptions) -> Option<Colo
         return Some(ColorSupportLevel::NoColor);
     }
 
-    let environment = Environment::new();
+    let environment = Environment::default();
     Some(environment.determine_color_level())
+}
+
+/// Unit Tests
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_color_support_level_from_u32() {
+        assert_eq!(ColorSupportLevel::from_u32(0), Some(ColorSupportLevel::NoColor));
+        assert_eq!(ColorSupportLevel::from_u32(1), Some(ColorSupportLevel::Basic));
+        assert_eq!(ColorSupportLevel::from_u32(2), Some(ColorSupportLevel::Colors256));
+        assert_eq!(ColorSupportLevel::from_u32(3), Some(ColorSupportLevel::TrueColor));
+        assert_eq!(ColorSupportLevel::from_u32(4), None);
+    }
+
+    #[test]
+    fn test_color_info_new() {
+        let color_info = ColorInfo::new(ColorSupportLevel::Basic);
+        assert_eq!(color_info.level, ColorSupportLevel::Basic);
+        assert_eq!(color_info.has_basic, true);
+        assert_eq!(color_info.has_256, false);
+        assert_eq!(color_info.has_16m, false);
+    }
+
+    #[test]
+    fn test_color_support_stderr() {
+        // As we don't have control over the actual terminal, we'll just test if the function runs without error
+        let _ = ColorSupport::stderr();
+    }
+
+    #[test]
+    fn test_determine_stream_color_level() {
+        // As we don't have control over the actual terminal, we'll just test if the function runs without error
+        let _ = determine_stream_color_level(OutputStreamOptions::new(Some(false), None));
+    }
+
+    /// Tests the detection of color support for standard output stream.
+    #[test]
+    fn test_color_support_stdout() {
+        // As we don't have control over the actual terminal, we'll just test if the function runs without error
+        let _ = ColorSupport::stdout();
+    }
+
+    /// Tests if ColorSupportLevel enum variants are comparable for equality.
+    #[test]
+    fn test_color_support_level_equality() {
+        assert_eq!(ColorSupportLevel::NoColor, ColorSupportLevel::NoColor);
+        assert_eq!(ColorSupportLevel::Basic, ColorSupportLevel::Basic);
+        assert_eq!(ColorSupportLevel::Colors256, ColorSupportLevel::Colors256);
+        assert_eq!(ColorSupportLevel::TrueColor, ColorSupportLevel::TrueColor);
+    }
+
+    /// Tests the equality of ColorInfo instances.
+    #[test]
+    fn test_color_info_equality() {
+        let color_info1 = ColorInfo::new(ColorSupportLevel::Basic);
+        let color_info2 = ColorInfo::new(ColorSupportLevel::Basic);
+        assert_eq!(color_info1, color_info2);
+    }
+
+    /// Tests if ColorInfo instances with different color support levels are not equal.
+    #[test]
+    fn test_color_info_inequality() {
+        let color_info1 = ColorInfo::new(ColorSupportLevel::Basic);
+        let color_info2 = ColorInfo::new(ColorSupportLevel::TrueColor);
+        assert_ne!(color_info1, color_info2);
+    }
 }
