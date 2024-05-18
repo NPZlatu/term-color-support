@@ -190,8 +190,6 @@ impl Environment {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
     use super::*;
 
     // Test determine_color_level() under various conditions
@@ -249,6 +247,16 @@ mod tests {
     }
 
     #[test]
+    fn test_determine_color_level_256color() {
+        // Test when term ends with "-256color"
+        let mut environment: Environment = Environment::default();
+        environment.colorterm = Some(String::from(""));
+        environment.term = String::from("xterm-256color");
+        println!("{:?} <---- who", environment.determine_color_level());
+        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_windows_color_level() {
         // Test when release_parts[0] < 10
@@ -270,21 +278,6 @@ mod tests {
     }
 
     #[test]
-    fn test_ci_tf_build() {
-        // Mock the environment variable for testing
-        std::env::set_var("CI", "TF_BUILD");
-
-        // Mock the AGENT_NAME environment variable
-        std::env::set_var("AGENT_NAME", "mock_agent");
-
-        // Create an Environment instance
-        let environment = Environment::default();
-
-        // Assert that the determine_color_level method returns ColorSupportLevel::Basic
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
-    }
-
-    #[test]
     fn test_teamcity_version() {
         // Test when teamcity_version starts with "9."
         let mut environment = Environment::default();
@@ -292,10 +285,12 @@ mod tests {
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
 
         // Test when teamcity_version starts with a numeric character
+        let mut environment = Environment::default();
         environment.teamcity_version = Some(String::from("10.0"));
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
 
         // Test when teamcity_version does not meet the conditions
+        let mut environment = Environment::default();
         environment.teamcity_version = Some(String::from("8.0"));
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::NoColor);
     }
@@ -306,23 +301,20 @@ mod tests {
         environment.term_program_version = String::from("3.2.1");
         assert_eq!(environment.get_term_program_version_major(), Some(3));
 
+        let mut environment = Environment::default();
         environment.colorterm = Some(String::from(""));
         environment.term_program = Some(String::from("Apple_Terminal"));
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
 
+        let mut environment: Environment = Environment::default();
+        environment.term_program_version = String::from("3.2.1");
+        environment.colorterm = Some(String::from(""));
         environment.term_program = Some(String::from("iTerm.app"));
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::TrueColor);
 
-        environment.term_program_version = String::from("2.2.1");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
-    }
-
-    #[test]
-    fn test_determine_color_level_256color() {
-        // Test when term ends with "-256color"
-        let mut environment = Environment::default();
+        let mut environment: Environment = Environment::default();
         environment.colorterm = Some(String::from(""));
-        environment.term = String::from("xterm-256color");
+        environment.term_program_version = String::from("2.2.1");
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
     }
 
@@ -332,5 +324,32 @@ mod tests {
         environment.colorterm = Some(String::from(""));
         environment.term = String::from("rxvt");
         assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+    }
+
+    #[test]
+    fn test_ci_tf_build() {
+        // Save original environment variables
+        let original_ci = std::env::var("CI").ok();
+        let original_agent_name = std::env::var("AGENT_NAME").ok();
+
+        // Mock the environment variables for testing
+        std::env::set_var("CI", "TF_BUILD");
+        std::env::set_var("AGENT_NAME", "mock_agent");
+
+        // Create an Environment instance
+        let environment = Environment::default();
+
+        // Assert that the determine_color_level method returns ColorSupportLevel::Basic
+        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+
+        // Reset the environment variables back to their original values
+        match original_ci {
+            Some(val) => std::env::set_var("CI", val),
+            None => std::env::remove_var("CI"),
+        }
+        match original_agent_name {
+            Some(val) => std::env::set_var("AGENT_NAME", val),
+            None => std::env::remove_var("AGENT_NAME"),
+        }
     }
 }
