@@ -14,4 +14,3 @@ path = "src/lib.rs"
 atty = "0.2"
 os_info = "3"
 regex = "1.5.4"
-

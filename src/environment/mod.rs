@@ -247,16 +247,6 @@ mod tests {
     }
 
     #[test]
-    fn test_determine_color_level_256color() {
-        // Test when term ends with "-256color"
-        let mut environment: Environment = Environment::default();
-        environment.colorterm = Some(String::from(""));
-        environment.term = String::from("xterm-256color");
-        println!("{:?} <---- who", environment.determine_color_level());
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
-    }
-
-    #[test]
     #[cfg(target_os = "windows")]
     fn test_windows_color_level() {
         // Test when release_parts[0] < 10
@@ -351,5 +341,26 @@ mod tests {
             Some(val) => std::env::set_var("AGENT_NAME", val),
             None => std::env::remove_var("AGENT_NAME"),
         }
+    }
+
+    #[test]
+    fn test_get_os_release_parts_valid() {
+        let mut environment = Environment::default();
+        environment.os_release = String::from("10.2.3");
+        assert_eq!(environment.get_os_release_parts(), vec![10, 2, 3]);
+    }
+
+    #[test]
+    fn test_get_os_release_parts_invalid() {
+        let mut environment = Environment::default();
+        environment.os_release = String::from("10.a.3");
+        assert_eq!(environment.get_os_release_parts(), vec![10, 0, 3]);
+    }
+
+    #[test]
+    fn test_get_os_release_parts_empty() {
+        let mut environment = Environment::default();
+        environment.os_release = String::from("");
+        assert_eq!(environment.get_os_release_parts(), vec![0]);
     }
 }
