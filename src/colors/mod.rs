@@ -122,12 +122,14 @@ impl ColorSupport {
 
 /// Determines the color support level for a stream based on the provided options.
 pub fn determine_stream_color_level(options: OutputStreamOptions) -> Option<ColorSupportLevel> {
+    let args = std::env::args().collect::<Vec<String>>();
+
     let force_color_level_from_env = extract_force_color_level_from_env();
 
     let mut color_level_from_flag: Option<ColorSupportLevel> = Some(ColorSupportLevel::NoColor);
 
     if force_color_level_from_env.is_none() {
-        color_level_from_flag = extract_color_level_from_flags();
+        color_level_from_flag = extract_color_level_from_flags(&args);
     }
 
     let force_color = if options.sniff_flags == true {
@@ -141,10 +143,14 @@ pub fn determine_stream_color_level(options: OutputStreamOptions) -> Option<Colo
     }
 
     if options.sniff_flags {
-        if has_flag("color=16m") || has_flag("color=full") || has_flag("color=truecolor") {
+        if
+            has_flag("color=16m", &args) ||
+            has_flag("color=full", &args) ||
+            has_flag("color=truecolor", &args)
+        {
             return Some(ColorSupportLevel::TrueColor);
         }
-        if has_flag("color=256") {
+        if has_flag("color=256", &args) {
             return Some(ColorSupportLevel::Colors256);
         }
     }
