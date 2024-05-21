@@ -3,6 +3,9 @@ name = "term_color_support"
 version = "0.1.0"
 edition = "2021"
 test = true
+authors = ["Niraj Paudel <itsmenirajpaudel@gmail.com>"]
+description = "Determine whether a terminal supports color or not, and identify the level of color support."
+license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
