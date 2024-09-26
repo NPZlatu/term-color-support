@@ -10,6 +10,8 @@
 //! standard error streams are connected to a terminal.
 //!
 
+use std::io::{stdout, IsTerminal};
+
 /// The module provides functionality to detect and manage color support information for terminal output
 /// streams.
 ///
@@ -25,8 +27,6 @@
 /// The module provides functionality to detect the color support level of the terminal, determine color
 /// support for standard output and standard error streams, and create `ColorInfo` structs representing
 /// the color support information. It also includes unit tests for the module's functions.
-use atty::{is, Stream};
-
 use crate::environment::Environment;
 use crate::options::{
     extract_color_level_from_flags, extract_force_color_level_from_env, has_flag,
@@ -103,15 +103,17 @@ pub struct ColorSupport {
 impl ColorSupport {
     /// Detects and returns color support information for standard output stream.
     pub fn stdout() -> ColorInfo {
+        let is_tty = stdout().is_terminal();
         let stdout_color_support_level: Option<ColorSupportLevel> =
-            determine_stream_color_level(OutputStreamOptions::new(Some(is(Stream::Stdout)), None));
+            determine_stream_color_level(OutputStreamOptions::new(Some(is_tty), None));
         ColorInfo::new(stdout_color_support_level.unwrap_or(ColorSupportLevel::NoColor))
     }
 
     /// Detects and returns color support information for standard error stream.
     pub fn stderr() -> ColorInfo {
+        let is_tty = stdout().is_terminal();
         let stderr_color_support_level: Option<ColorSupportLevel> =
-            determine_stream_color_level(OutputStreamOptions::new(Some(is(Stream::Stderr)), None));
+            determine_stream_color_level(OutputStreamOptions::new(Some(is_tty), None));
         ColorInfo::new(stderr_color_support_level.unwrap_or(ColorSupportLevel::NoColor))
     }
 }
