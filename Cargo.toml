@@ -7,6 +7,7 @@ authors = ["Niraj Paudel <itsmenirajpaudel@gmail.com>"]
 description = "Determine whether a terminal supports color or not, and identify the level of color support."
 license = "Apache-2.0"
 repository = "https://github.com/itsmenirajpaudel/term-color-support"
+rust-version = "1.70.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,6 +16,6 @@ name = "term_color_support"
 path = "src/lib.rs"
 
 [dependencies]
-atty = "0.2"
 os_info = "3"
 regex = "1.5.4"
+temp-env = "0.3.6"
