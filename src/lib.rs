@@ -21,8 +21,8 @@
 //! }
 //! ```
 
-mod colors;
-mod environment;
-mod options;
+pub mod colors;
+pub mod environment;
+pub mod options;
 
 pub use colors::ColorSupport;

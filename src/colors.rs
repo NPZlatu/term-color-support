@@ -25,14 +25,12 @@
 /// The module provides functionality to detect the color support level of the terminal, determine color
 /// support for standard output and standard error streams, and create `ColorInfo` structs representing
 /// the color support information. It also includes unit tests for the module's functions.
-use atty::{ Stream, is };
+use atty::{is, Stream};
 
 use crate::environment::Environment;
 use crate::options::{
+    extract_color_level_from_flags, extract_force_color_level_from_env, has_flag,
     OutputStreamOptions,
-    has_flag,
-    extract_force_color_level_from_env,
-    extract_color_level_from_flags,
 };
 
 /// Enumeration representing the level of color support.
@@ -105,17 +103,15 @@ pub struct ColorSupport {
 impl ColorSupport {
     /// Detects and returns color support information for standard output stream.
     pub fn stdout() -> ColorInfo {
-        let stdout_color_support_level: Option<ColorSupportLevel> = determine_stream_color_level(
-            OutputStreamOptions::new(Some(is(Stream::Stdout)), None)
-        );
+        let stdout_color_support_level: Option<ColorSupportLevel> =
+            determine_stream_color_level(OutputStreamOptions::new(Some(is(Stream::Stdout)), None));
         ColorInfo::new(stdout_color_support_level.unwrap_or(ColorSupportLevel::NoColor))
     }
 
     /// Detects and returns color support information for standard error stream.
     pub fn stderr() -> ColorInfo {
-        let stderr_color_support_level: Option<ColorSupportLevel> = determine_stream_color_level(
-            OutputStreamOptions::new(Some(is(Stream::Stderr)), None)
-        );
+        let stderr_color_support_level: Option<ColorSupportLevel> =
+            determine_stream_color_level(OutputStreamOptions::new(Some(is(Stream::Stderr)), None));
         ColorInfo::new(stderr_color_support_level.unwrap_or(ColorSupportLevel::NoColor))
     }
 }
@@ -143,10 +139,9 @@ pub fn determine_stream_color_level(options: OutputStreamOptions) -> Option<Colo
     }
 
     if options.sniff_flags {
-        if
-            has_flag("color=16m", &args) ||
-            has_flag("color=full", &args) ||
-            has_flag("color=truecolor", &args)
+        if has_flag("color=16m", &args)
+            || has_flag("color=full", &args)
+            || has_flag("color=truecolor", &args)
         {
             return Some(ColorSupportLevel::TrueColor);
         }
@@ -171,10 +166,22 @@ mod tests {
 
     #[test]
     fn test_color_support_level_from_u32() {
-        assert_eq!(ColorSupportLevel::from_u32(0), Some(ColorSupportLevel::NoColor));
-        assert_eq!(ColorSupportLevel::from_u32(1), Some(ColorSupportLevel::Basic));
-        assert_eq!(ColorSupportLevel::from_u32(2), Some(ColorSupportLevel::Colors256));
-        assert_eq!(ColorSupportLevel::from_u32(3), Some(ColorSupportLevel::TrueColor));
+        assert_eq!(
+            ColorSupportLevel::from_u32(0),
+            Some(ColorSupportLevel::NoColor)
+        );
+        assert_eq!(
+            ColorSupportLevel::from_u32(1),
+            Some(ColorSupportLevel::Basic)
+        );
+        assert_eq!(
+            ColorSupportLevel::from_u32(2),
+            Some(ColorSupportLevel::Colors256)
+        );
+        assert_eq!(
+            ColorSupportLevel::from_u32(3),
+            Some(ColorSupportLevel::TrueColor)
+        );
         assert_eq!(ColorSupportLevel::from_u32(4), None);
     }
 
