@@ -18,3 +18,4 @@ path = "src/lib.rs"
 [dependencies]
 os_info = "3"
 regex = "1.5.4"
+temp-env = "0.3.6"

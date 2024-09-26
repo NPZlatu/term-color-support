@@ -361,32 +361,16 @@ mod tests {
 
     #[test]
     fn test_ci_tf_build() {
-        // Save original environment variables
-        let original_ci = std::env::var("CI").ok();
-        let original_agent_name = std::env::var("AGENT_NAME").ok();
-
-        // Mock the environment variables for testing
-        std::env::set_var("CI", "TF_BUILD");
-        std::env::set_var("AGENT_NAME", "mock_agent");
-
-        // Create an Environment instance
-        let environment = Environment::default();
-
-        // Assert that the determine_color_level method returns ColorSupportLevel::Basic
-        assert_eq!(
-            environment.determine_color_level(),
-            ColorSupportLevel::Basic
+        temp_env::with_vars(
+            [("CI", Some("TF_BUILD")), ("AGENT_NAME", Some("mock_agent"))],
+            || {
+                let environment = Environment::default();
+                assert_eq!(
+                    environment.determine_color_level(),
+                    ColorSupportLevel::Basic
+                );
+            },
         );
-
-        // Reset the environment variables back to their original values
-        match original_ci {
-            Some(val) => std::env::set_var("CI", val),
-            None => std::env::remove_var("CI"),
-        }
-        match original_agent_name {
-            Some(val) => std::env::set_var("AGENT_NAME", val),
-            None => std::env::remove_var("AGENT_NAME"),
-        }
     }
 
     #[test]

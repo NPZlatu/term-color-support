@@ -216,48 +216,49 @@ mod tests {
 
     #[test]
     fn test_extract_force_color_level_from_env_true() {
-        std::env::set_var("FORCE_COLOR", "true");
-        assert_eq!(
-            extract_force_color_level_from_env(),
-            Some(ColorSupportLevel::Basic)
-        );
-        std::env::remove_var("FORCE_COLOR");
+        temp_env::with_var("FORCE_COLOR", Some("true"), || {
+            assert_eq!(
+                extract_force_color_level_from_env(),
+                Some(ColorSupportLevel::Basic)
+            );
+        });
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_false() {
-        std::env::set_var("FORCE_COLOR", "false");
-        assert_eq!(
-            extract_force_color_level_from_env(),
-            Some(ColorSupportLevel::NoColor)
-        );
-        std::env::remove_var("FORCE_COLOR");
+        temp_env::with_var("FORCE_COLOR", Some("false"), || {
+            assert_eq!(
+                extract_force_color_level_from_env(),
+                Some(ColorSupportLevel::NoColor)
+            );
+        });
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_empty() {
-        std::env::set_var("FORCE_COLOR", String::from(""));
-        assert_eq!(
-            extract_force_color_level_from_env(),
-            Some(ColorSupportLevel::Basic)
-        );
+        temp_env::with_var("FORCE_COLOR", Some(String::from("")), || {
+            assert_eq!(
+                extract_force_color_level_from_env(),
+                Some(ColorSupportLevel::Basic)
+            );
+        });
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_valid_integer() {
-        std::env::set_var("FORCE_COLOR", "2");
-        assert_eq!(
-            extract_force_color_level_from_env(),
-            Some(ColorSupportLevel::Colors256)
-        );
-        std::env::remove_var("FORCE_COLOR");
+        temp_env::with_var("FORCE_COLOR", Some("2"), || {
+            assert_eq!(
+                extract_force_color_level_from_env(),
+                Some(ColorSupportLevel::Colors256)
+            );
+        });
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_invalid_integer() {
-        std::env::set_var("FORCE_COLOR", "not_an_integer");
-        assert_eq!(extract_force_color_level_from_env(), None);
-        std::env::remove_var("FORCE_COLOR");
+        temp_env::with_var("FORCE_COLOR", Some("not_an_integer"), || {
+            assert_eq!(extract_force_color_level_from_env(), None);
+        });
     }
 
     #[test]
