@@ -24,9 +24,9 @@
 //! information from environment variables and command-line flags.
 //!
 
+use crate::colors::ColorSupportLevel;
 use os_info;
 use regex::Regex;
-use crate::colors::ColorSupportLevel;
 
 /// Struct representing the environment details.
 pub struct Environment {
@@ -54,15 +54,14 @@ impl Environment {
         ci: Option<String>,
         os_release: Option<String>,
         term_program: Option<String>,
-        term_program_version: Option<String>
+        term_program_version: Option<String>,
     ) -> Self {
         let binding = os_info::get();
         let os_release = os_release.unwrap_or_else(|| binding.version().to_string());
 
         Self {
-            term: term.unwrap_or_else(||
-                std::env::var("TERM").unwrap_or_else(|_| String::from(""))
-            ),
+            term: term
+                .unwrap_or_else(|| std::env::var("TERM").unwrap_or_else(|_| String::from(""))),
             colorterm: colorterm.or_else(|| std::env::var("COLORTERM").ok()),
             teamcity_version: teamcity_version.or_else(|| std::env::var("TEAMCITY_VERSION").ok()),
             ci: ci.or_else(|| std::env::var("CI").ok()),
@@ -164,16 +163,15 @@ impl Environment {
             return ColorSupportLevel::Colors256;
         }
 
-        if
-            self.term.starts_with("screen") ||
-            self.term.starts_with("xterm") ||
-            self.term.starts_with("vt100") ||
-            self.term.starts_with("vt220") ||
-            self.term.starts_with("rxvt") ||
-            self.term.contains("color") ||
-            self.term.contains("ansi") ||
-            self.term.contains("cygwin") ||
-            self.term.contains("linux")
+        if self.term.starts_with("screen")
+            || self.term.starts_with("xterm")
+            || self.term.starts_with("vt100")
+            || self.term.starts_with("vt220")
+            || self.term.starts_with("rxvt")
+            || self.term.contains("color")
+            || self.term.contains("ansi")
+            || self.term.contains("cygwin")
+            || self.term.contains("linux")
         {
             return ColorSupportLevel::Basic;
         }
@@ -198,12 +196,18 @@ mod tests {
         // Test when term is "dumb"
         let mut environment_dumb = Environment::default();
         environment_dumb.term = String::from("dumb");
-        assert_eq!(environment_dumb.determine_color_level(), ColorSupportLevel::NoColor);
+        assert_eq!(
+            environment_dumb.determine_color_level(),
+            ColorSupportLevel::NoColor
+        );
 
         // Test when term is "xterm-kitty"
         let mut environment_xterm_kitty = Environment::default();
         environment_xterm_kitty.term = String::from("xterm-kitty");
-        assert_eq!(environment_xterm_kitty.determine_color_level(), ColorSupportLevel::TrueColor);
+        assert_eq!(
+            environment_xterm_kitty.determine_color_level(),
+            ColorSupportLevel::TrueColor
+        );
 
         // Test when term starts with "vt100"
         let environment_vt100 = Environment::new(
@@ -213,9 +217,12 @@ mod tests {
             None,
             None,
             None,
-            None
+            None,
         );
-        assert_eq!(environment_vt100.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment_vt100.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Test when term is "screen" and colorterm is "truecolor"
         let environment_screen_truecolor = Environment::new(
@@ -225,7 +232,7 @@ mod tests {
             None,
             None,
             None,
-            None
+            None,
         );
         assert_eq!(
             environment_screen_truecolor.determine_color_level(),
@@ -240,10 +247,13 @@ mod tests {
             None,
             None,
             None,
-            None
+            None,
         );
         environment_linux.term = String::from("linux");
-        assert_eq!(environment_linux.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment_linux.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
     }
 
     #[test]
@@ -252,19 +262,31 @@ mod tests {
         // Test when release_parts[0] < 10
         let mut environment = Environment::default();
         environment.os_release = String::from("9.0.0");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Test when release_parts[0] >= 10 and release_parts[2] < 10_586
         environment.os_release = String::from("10.0.0");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Test when release_parts[0] >= 10, release_parts[2] >= 10_586, and release_parts[2] < 14_931
         environment.os_release = String::from("10.0.10585");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Colors256
+        );
 
         // Test when release_parts[0] >= 10 and release_parts[2] >= 14_931
         environment.os_release = String::from("10.0.14931");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::TrueColor);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::TrueColor
+        );
     }
 
     #[test]
@@ -272,17 +294,26 @@ mod tests {
         // Test when teamcity_version starts with "9."
         let mut environment = Environment::default();
         environment.teamcity_version = Some(String::from("9.1"));
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Test when teamcity_version starts with a numeric character
         let mut environment = Environment::default();
         environment.teamcity_version = Some(String::from("10.0"));
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Test when teamcity_version does not meet the conditions
         let mut environment = Environment::default();
         environment.teamcity_version = Some(String::from("8.0"));
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::NoColor);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::NoColor
+        );
     }
 
     #[test]
@@ -294,18 +325,27 @@ mod tests {
         let mut environment = Environment::default();
         environment.colorterm = Some(String::from(""));
         environment.term_program = Some(String::from("Apple_Terminal"));
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Colors256
+        );
 
         let mut environment: Environment = Environment::default();
         environment.term_program_version = String::from("3.2.1");
         environment.colorterm = Some(String::from(""));
         environment.term_program = Some(String::from("iTerm.app"));
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::TrueColor);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::TrueColor
+        );
 
         let mut environment: Environment = Environment::default();
         environment.colorterm = Some(String::from(""));
         environment.term_program_version = String::from("2.2.1");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Colors256);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Colors256
+        );
     }
 
     #[test]
@@ -313,7 +353,10 @@ mod tests {
         let mut environment = Environment::default();
         environment.colorterm = Some(String::from(""));
         environment.term = String::from("rxvt");
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
     }
 
     #[test]
@@ -330,7 +373,10 @@ mod tests {
         let environment = Environment::default();
 
         // Assert that the determine_color_level method returns ColorSupportLevel::Basic
-        assert_eq!(environment.determine_color_level(), ColorSupportLevel::Basic);
+        assert_eq!(
+            environment.determine_color_level(),
+            ColorSupportLevel::Basic
+        );
 
         // Reset the environment variables back to their original values
         match original_ci {

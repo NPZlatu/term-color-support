@@ -66,18 +66,16 @@ pub fn extract_force_color_level_from_env() -> Option<ColorSupportLevel> {
 
 /// Extracts the color support level from command-line flags.
 pub fn extract_color_level_from_flags(args: &Vec<String>) -> Option<ColorSupportLevel> {
-    if
-        has_flag("no-color", &args) ||
-        has_flag("no-colors", &args) ||
-        has_flag("color=false", &args) ||
-        has_flag("color=never", &args)
+    if has_flag("no-color", &args)
+        || has_flag("no-colors", &args)
+        || has_flag("color=false", &args)
+        || has_flag("color=never", &args)
     {
         Some(ColorSupportLevel::NoColor)
-    } else if
-        has_flag("color", &args) ||
-        has_flag("colors", &args) ||
-        has_flag("color=true", &args) ||
-        has_flag("color=always", &args)
+    } else if has_flag("color", &args)
+        || has_flag("colors", &args)
+        || has_flag("color=true", &args)
+        || has_flag("color=always", &args)
     {
         Some(ColorSupportLevel::Basic)
     } else {
@@ -115,7 +113,7 @@ mod tests {
         let args = vec![
             String::from("-verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("-verbose", &args));
     }
@@ -125,14 +123,18 @@ mod tests {
         let args = vec![
             String::from("-Verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("-verbose", &args));
     }
 
     #[test]
     fn test_has_flag_without_dashes() {
-        let args = vec![String::from("verbose"), String::from("output"), String::from("file.txt")];
+        let args = vec![
+            String::from("verbose"),
+            String::from("output"),
+            String::from("file.txt"),
+        ];
         assert!(has_flag("-verbose", &args));
     }
 
@@ -141,14 +143,18 @@ mod tests {
         let args = vec![
             String::from("-verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("-output", &args));
     }
 
     #[test]
     fn test_has_flag_with_non_existing_flag() {
-        let args = vec![String::from("-debug"), String::from("-output"), String::from("file.txt")];
+        let args = vec![
+            String::from("-debug"),
+            String::from("-output"),
+            String::from("file.txt"),
+        ];
         assert!(!has_flag("-verbose", &args));
     }
 
@@ -163,14 +169,18 @@ mod tests {
         let args = vec![
             String::from("-verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(!has_flag("", &args));
     }
 
     #[test]
     fn test_has_flag_with_no_dash_in_flag() {
-        let args = vec![String::from("verbose"), String::from("output"), String::from("file.txt")];
+        let args = vec![
+            String::from("verbose"),
+            String::from("output"),
+            String::from("file.txt"),
+        ];
         assert!(has_flag("verbose", &args));
     }
 
@@ -179,7 +189,7 @@ mod tests {
         let args = vec![
             String::from("-verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("verbose", &args));
     }
@@ -189,7 +199,7 @@ mod tests {
         let args = vec![
             String::from("--verbose"),
             String::from("--output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("verbose", &args));
     }
@@ -199,7 +209,7 @@ mod tests {
         let args = vec![
             String::from("-verbose"),
             String::from("-output"),
-            String::from("file.txt")
+            String::from("file.txt"),
         ];
         assert!(has_flag("--verbose", &args));
     }
@@ -207,27 +217,39 @@ mod tests {
     #[test]
     fn test_extract_force_color_level_from_env_true() {
         std::env::set_var("FORCE_COLOR", "true");
-        assert_eq!(extract_force_color_level_from_env(), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_force_color_level_from_env(),
+            Some(ColorSupportLevel::Basic)
+        );
         std::env::remove_var("FORCE_COLOR");
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_false() {
         std::env::set_var("FORCE_COLOR", "false");
-        assert_eq!(extract_force_color_level_from_env(), Some(ColorSupportLevel::NoColor));
+        assert_eq!(
+            extract_force_color_level_from_env(),
+            Some(ColorSupportLevel::NoColor)
+        );
         std::env::remove_var("FORCE_COLOR");
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_empty() {
         std::env::set_var("FORCE_COLOR", String::from(""));
-        assert_eq!(extract_force_color_level_from_env(), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_force_color_level_from_env(),
+            Some(ColorSupportLevel::Basic)
+        );
     }
 
     #[test]
     fn test_extract_force_color_level_from_env_valid_integer() {
         std::env::set_var("FORCE_COLOR", "2");
-        assert_eq!(extract_force_color_level_from_env(), Some(ColorSupportLevel::Colors256));
+        assert_eq!(
+            extract_force_color_level_from_env(),
+            Some(ColorSupportLevel::Colors256)
+        );
         std::env::remove_var("FORCE_COLOR");
     }
 
@@ -241,44 +263,65 @@ mod tests {
     #[test]
     fn test_extract_color_level_from_flags_no_color_flags() {
         let args = vec![String::from("program_name"), String::from("--no-color")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::NoColor));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::NoColor)
+        );
     }
 
     #[test]
     fn test_extract_color_level_from_flags_color_false_flags() {
         let args = vec![String::from("program_name"), String::from("--color=false")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::NoColor));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::NoColor)
+        );
     }
 
     #[test]
     fn test_extract_color_level_from_flags_color_never_flags() {
         let args = vec![String::from("program_name"), String::from("--color=never")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::NoColor));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::NoColor)
+        );
     }
 
     // Test cases for flags indicating basic color support.
     #[test]
     fn test_extract_color_level_from_flags_color_flags() {
         let args = vec![String::from("program_name"), String::from("--color")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::Basic)
+        );
     }
 
     #[test]
     fn test_extract_color_level_from_flags_colors_flags() {
         let args = vec![String::from("program_name"), String::from("--colors")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::Basic)
+        );
     }
 
     #[test]
     fn test_extract_color_level_from_flags_color_true_flags() {
         let args = vec![String::from("program_name"), String::from("--color=true")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::Basic)
+        );
     }
 
     #[test]
     fn test_extract_color_level_from_flags_color_always_flags() {
         let args = vec![String::from("program_name"), String::from("--color=always")];
-        assert_eq!(extract_color_level_from_flags(&args), Some(ColorSupportLevel::Basic));
+        assert_eq!(
+            extract_color_level_from_flags(&args),
+            Some(ColorSupportLevel::Basic)
+        );
     }
 
     // Test case when no relevant flags are present.
