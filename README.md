@@ -1,18 +1,22 @@
 # Term Color Support
 
 ## Description
+
 Determine whether a terminal supports color or not, and if it supports color, identify the level of color support available.
 
 ## Features
+
 - Detect if the terminal supports color.
 - Identify the level of color support (e.g., no color, basic 16 colors, 256 colors, true color).
 
 ## Installation
 
 ### Prerequisites
+
 - [Rust](https://www.rust-lang.org/tools/install) (Ensure you have Rust and Cargo installed)
 
 ### Adding as a Dependency
+
 To use this package, add the following to your `Cargo.toml`:
 
 ```toml
@@ -21,7 +25,8 @@ term_color_support = "0.1.0"  # Replace with the latest version
 ```
 
 ## Usage
-```
+
+```rust
 use term_color_support::ColorSupport;
 fn main() {
     // Detect and print color support for stdout
